@@ -72,3 +72,5 @@ typings/
 venv/
 config/settings/dev.py
 db.sqlite3
+
+.DS_Store
