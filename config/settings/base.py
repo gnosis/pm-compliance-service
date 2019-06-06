@@ -12,8 +12,8 @@ env = environ.Env()
 READ_DOT_ENV_FILE = env.bool('DJANGO_READ_DOT_ENV_FILE', default=False)
 DOT_ENV_FILE = env('DJANGO_DOT_ENV_FILE', default=None)
 if READ_DOT_ENV_FILE or DOT_ENV_FILE:
-    DOT_ENV_FILE = DOT_ENV_FILE or '.env'
-    # OS environment variables take precedence over variables from .env
+    DOT_ENV_FILE = DOT_ENV_FILE or '.env_docker_compose'
+    # OS environment variables take precedence over variables from .env_docker_compose
     env.read_env(str(ROOT_DIR.path(DOT_ENV_FILE)))
 
 # GENERAL
@@ -172,8 +172,8 @@ MANAGERS = ADMINS
 # Celery
 # ------------------------------------------------------------------------------
 INSTALLED_APPS += [
-    #'pm_compliance_service.taskapp.celery.CeleryConfig',
-    #'django_celery_beat',
+    'pm_compliance_service.taskapp.celery.CeleryConfig',
+    'django_celery_beat',
 ]
 # http://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-broker_url
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='django://')

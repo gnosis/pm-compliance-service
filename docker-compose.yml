@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: docker/web/Dockerfile
     env_file:
-      - .env
+      - .env_docker_compose
     depends_on:
       - db
       - redis
@@ -45,11 +45,12 @@ services:
       context: .
       dockerfile: docker/web/Dockerfile
     env_file:
-      - .env
+      - .env_docker_compose
     depends_on:
       - db
       - redis
       - ganache
+      - web
     command: docker/web/celery/worker/run.sh
 
   scheduler:
