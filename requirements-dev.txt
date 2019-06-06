@@ -1,0 +1,7 @@
+-r requirements.txt
+-r requirements-test.txt
+django-debug-toolbar-force
+ipython
+isort
+ipdb
+flake8
