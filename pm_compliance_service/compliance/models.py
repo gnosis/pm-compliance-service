@@ -18,18 +18,26 @@ class Country(TimeStampedModel):
     iso2 = models.CharField(max_length=2, primary_key=True)
     iso3 = models.CharField(max_length=3)
     numeric = models.PositiveSmallIntegerField()
+    is_enabled = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
 
 
 class User(TimeStampedModel):
+    cra = models.PositiveSmallIntegerField(default=None, null=True, blank=True)
     ethereum_address = EthereumAddressField(unique=True)
     email = models.EmailField(unique=True)
-    cra = models.PositiveSmallIntegerField()
-    status = models.PositiveSmallIntegerField(null=False, choices=[(tag.value, tag.name) for tag in Status])
     is_source_of_funds_verified = models.BooleanField(default=False)
-    country = models.ForeignKey(Country, on_delete=models.PROTECT, related_name='country_users')
+    name = models.CharField(max_length=45)
+    lastname = models.CharField(max_length=45)
+    status = models.PositiveSmallIntegerField(null=False,
+                                              choices=[(tag.value, tag.name) for tag in Status],
+                                              default=Status.PENDING.value)
+
+    country = models.ForeignKey(Country,
+                                on_delete=models.PROTECT,
+                                related_name='country_users')
 
     def __str__(self):
         return 'Email={} Address={} Status={}'.format(self.email, self.ethereum_address, self.status)

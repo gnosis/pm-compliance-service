@@ -1,20 +1,17 @@
 import logging
 
-from django.conf import settings
-from django.db.models import Q
-
-from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
-from eth_account.account import Account
-from rest_framework import filters, status
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.generics import CreateAPIView, ListAPIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import status
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import AllowAny
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
+from web3 import Web3
 
 from pm_compliance_service.version import __version__
+from .serializers import UserCreationSerializer
+
 
 logger = logging.getLogger(__name__)
 
@@ -55,3 +52,28 @@ class AboutView(APIView):
             'settings': {}
         }
         return Response(content)
+
+
+class UserCreationView(CreateAPIView):
+    """
+    Handles POST requests to /users/<str:ethereum_address>
+    """
+    permission_classes = (AllowAny,)
+    serializer_class = UserCreationSerializer
+
+    @swagger_auto_schema(responses={201: UserCreationSerializer(),
+                                    400: 'Invalid data'})
+    def post(self, request, ethereum_address, *args, **kwargs):
+        if not Web3.isChecksumAddress(ethereum_address):
+            return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        serializer = self.serializer_class(data={
+            **request.data,
+            'ethereum_address': ethereum_address
+        })
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(status=status.HTTP_201_CREATED, data=None)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=serializer.errors)
