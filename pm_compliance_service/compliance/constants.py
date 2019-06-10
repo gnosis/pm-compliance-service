@@ -1,0 +1,1 @@
+RECAPTCHA_RESPONSE_PARAM = 'g-recaptcha-response'

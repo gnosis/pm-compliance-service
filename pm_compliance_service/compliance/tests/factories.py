@@ -8,6 +8,8 @@ from faker import Faker
 from faker.providers import internet
 
 from ..models import Country, User
+from ..serializers import SourceOfWealth
+from ..constants import RECAPTCHA_RESPONSE_PARAM
 from ..utils import country_iso_codes
 
 
@@ -54,12 +56,30 @@ def get_mocked_signup_data(**kwargs) -> Dict:
     :return: mocked data
     """
     country_iso_code = country_iso_codes[randrange(0, len(country_iso_codes))]
+    # Construct base signup request data
     mock_data = {
-        'email': faker.safe_email(),
-        'name': faker.name(),
-        'lastname': faker.name(),
-        'country': country_iso_code[2]
+        'user': {
+            'email': faker.safe_email(),
+            'name': faker.name(),
+            'lastname': faker.name(),
+            'country': country_iso_code[2],
+        },
+        'extra': {
+            'source_of_wealth': SourceOfWealth(faker.random.randrange(0, 10)).value,
+            'source_of_wealth_metadata': 'test',
+            'expected_trade_volume': faker.random.randrange(1, 100)
+        }
     }
     # Provide extra data or override default ones
-    mock_data.update(kwargs)
-    return mock_data
+    merged_data = {
+        'user': {
+            **mock_data.get('user'),
+            **kwargs.get('user', {})
+        },
+        'extra': {
+            **mock_data.get('extra'),
+            **kwargs.get('extra', {})
+        }
+    }
+
+    return merged_data

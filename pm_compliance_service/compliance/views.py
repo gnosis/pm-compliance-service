@@ -1,4 +1,5 @@
 import logging
+from typing import Dict
 
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
@@ -10,6 +11,7 @@ from rest_framework.views import APIView, exception_handler
 from web3 import Web3
 
 from pm_compliance_service.version import __version__
+from .constants import RECAPTCHA_RESPONSE_PARAM
 from .serializers import UserCreationSerializer
 
 
@@ -61,16 +63,31 @@ class UserCreationView(CreateAPIView):
     permission_classes = (AllowAny,)
     serializer_class = UserCreationSerializer
 
+    def _transform_data(self, ethereum_address: str, data: Dict):
+        """
+        Transform input data into a structure compatible with UserCreationSerializer
+        """
+        transformed_data = {
+            'user': {
+                **data.get('user', {}),
+                'ethereum_address': ethereum_address,
+            },
+            'extra': {
+                **data.get('extra', {}),
+                'recaptcha': data.get('extra', {}).get(RECAPTCHA_RESPONSE_PARAM, None)
+            }
+        }
+        return transformed_data
+
     @swagger_auto_schema(responses={201: UserCreationSerializer(),
                                     400: 'Invalid data'})
     def post(self, request, ethereum_address, *args, **kwargs):
         if not Web3.isChecksumAddress(ethereum_address):
             return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-        serializer = self.serializer_class(data={
-            **request.data,
-            'ethereum_address': ethereum_address
-        })
+        # Transform data
+        data = self._transform_data(ethereum_address, request.data)
+        serializer = self.serializer_class(data=data)
 
         if serializer.is_valid():
             serializer.save()

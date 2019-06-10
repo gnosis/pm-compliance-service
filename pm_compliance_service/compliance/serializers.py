@@ -1,13 +1,30 @@
+from enum import Enum
+
 from django.conf import settings
 from gnosis.eth.django.serializers import EthereumAddressField
 from gnosis.eth import EthereumClientProvider
+from requests import post
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
 from .models import Country, User
 
 
-class UserCreationSerializer(serializers.ModelSerializer):
+class SourceOfWealth(Enum):
+    SALARIED = 0
+    SELF_EMPLOYEE = 1
+    GIFT = 2
+    PENSION = 3
+    FINANCIAL_TRADING = 4
+    TAX_REBATES = 5
+    CRYPTOCURRENCY_TRADING = 6
+    SALFE_OF_INVESTEMENTS = 7
+    SALE_OF_PROPERTY = 8
+    SALFE_OF_COMPANY = 9
+    RENTAL_INCOME = 10
+
+
+class UserModelSerializer(serializers.ModelSerializer):
     """
     Serializes user data into database.
     """
@@ -52,6 +69,41 @@ class UserCreationSerializer(serializers.ModelSerializer):
             raise ValidationError
         return value
 
-    def create(self, validated_data):
-        return User.objects.create(**validated_data)
 
+class ThirdPartyDataSerializer(serializers.Serializer):
+    """
+    Serializes data that will be sent to 3rd-party services.
+    """
+    source_of_wealth = serializers.ChoiceField([(tag.value, tag.name) for tag in SourceOfWealth])
+    source_of_wealth_metadata = serializers.CharField(max_length=255)
+    expected_trade_volume = serializers.IntegerField()
+    recaptcha = serializers.CharField(allow_null=True)  # skip default Validation, use function defined validation
+
+    def validate_recaptcha(self, value):
+        if settings.ENABLE_RECAPTCHA_VALIDATION:
+            data = {
+                'secret': settings.RECAPTCHA_SECRET_KEY,
+                'response': value
+            }
+
+            # Execute captcha validation
+            request = post(settings.RECAPTCHA_VALIDATION_URL, data=data)
+
+            if request.json().get('status') == 'Success':
+                return value
+            else:
+                raise ValidationError('Invalid Captcha')
+        else:
+            return value
+
+
+class UserCreationSerializer(serializers.Serializer):
+    """
+    Main User creation serializer
+    """
+    user = UserModelSerializer()
+    extra = ThirdPartyDataSerializer()
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        return User.objects.create(**user_data)
