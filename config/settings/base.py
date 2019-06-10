@@ -270,3 +270,8 @@ LOGGING = {
 }
 
 REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')
+
+# Ethereum
+# ------------------------------------------------------------------------------
+ETHEREUM_NODE_URL = env('ETHEREUM_NODE_URL', default=None)
+MIN_SIGNUP_ETH_BALANCE = env('MIN_SIGNUP_ETH_BALANCE', default=1000000000000000)  # 0.001 ETH
