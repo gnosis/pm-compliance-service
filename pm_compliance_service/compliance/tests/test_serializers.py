@@ -4,7 +4,6 @@ from eth_account import Account
 from gnosis.eth.tests.ethereum_test_case import EthereumTestCaseMixin
 
 from .factories import get_mocked_signup_data
-from ..models import User
 from ..serializers import UserSerializer
 
 

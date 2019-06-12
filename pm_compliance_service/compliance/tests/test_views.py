@@ -32,7 +32,7 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
         mock_data['user'].update({'giacomo': True})
         # Send funds to signing address
         self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)
-        response = self.client.post(url, data=mock_data, format='json')
+        response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_user_creation(self):
@@ -41,7 +41,7 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
         self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)
         mock_data = get_mocked_signup_data()
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
-        response = self.client.post(url, data=mock_data, format='json')
+        response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(User.objects.first().email, mock_data['user']['email'])
         self.assertEqual(User.objects.first().ethereum_address, ethereum_address)
@@ -49,27 +49,27 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
         self.assertEqual(User.objects.first().status, Status.PENDING.value)
 
         # Try saving the same user twice
-        response = self.client.post(url, data=mock_data, format='json')
+        response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         # Try saving the same data with different ethereum address
         ethereum_address = Account.create().address
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
-        response = self.client.post(url, data=mock_data, format='json')
+        response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         # Try saving data with wrong email address
         ethereum_address = Account.create().address
         mock_data = get_mocked_signup_data(**{'user': {'email': 'wrong.com'}})
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
-        response = self.client.post(url, data=mock_data, format='json')
+        response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         # Try saving data with wrong country ISO3 code
         ethereum_address = Account.create().address
         mock_data = get_mocked_signup_data(**{'user': {'country': '000'}})
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
-        response = self.client.post(url, data=mock_data, format='json')
+        response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIsNotNone(response.data['country'])
         self.assertIsInstance(response.data['country'][0], ErrorDetail)
@@ -81,13 +81,13 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
     @override_settings(
         ONFIDO_API_TOKEN=None
     )
-    def test_onfido_api_token_fails(self):
+    def test_user_creation_wrong_onfido_api_token(self):
         ethereum_address = Account.create().address
         # Send funds to signing address
         self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)
         mock_data = get_mocked_signup_data()
         self.assertEqual(User.objects.count(), 0)
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
-        response = self.client.post(url, data=mock_data, format='json')
+        response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 0)

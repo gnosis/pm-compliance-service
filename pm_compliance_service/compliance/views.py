@@ -77,7 +77,7 @@ class UserCreationView(CreateAPIView):
         """
         transformed_data = {
             'user': {
-                **data.get('user', {}),
+                **data,
                 'ethereum_address': ethereum_address,
                 'recaptcha': data.get('extra', {}).get(RECAPTCHA_RESPONSE_PARAM, None)
             }
@@ -87,6 +87,7 @@ class UserCreationView(CreateAPIView):
             'onfido': {
                 'first_name': transformed_data['user'].get('name', None),
                 'last_name': transformed_data['user'].get('lastname', None),
+                'email': transformed_data['user'].get('email', None),
                 'dob': transformed_data['user'].get('birthdate', None)
             }
         })
