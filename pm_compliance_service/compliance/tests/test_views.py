@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.test import override_settings
 from django.urls import reverse
 from eth_account import Account
 from gnosis.eth.tests.ethereum_test_case import EthereumTestCaseMixin
@@ -28,14 +29,15 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
         response = self.client.post(url, data=mock_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # Send funds to signing address
         mock_data['user'].update({'giacomo': True})
+        # Send funds to signing address
         self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)
         response = self.client.post(url, data=mock_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_user_creation(self):
         ethereum_address = Account.create().address
+        # Send funds to signing address
         self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)
         mock_data = get_mocked_signup_data()
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
@@ -69,9 +71,23 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
         response = self.client.post(url, data=mock_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIsNotNone(response.data['user']['country'])
-        self.assertIsInstance(response.data['user']['country'][0], ErrorDetail)
+        self.assertIsNotNone(response.data['country'])
+        self.assertIsInstance(response.data['country'][0], ErrorDetail)
 
         # Try saving data empty data
         response = self.client.post(url, data={}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @override_settings(
+        ONFIDO_API_TOKEN=None
+    )
+    def test_onfido_api_token_fails(self):
+        ethereum_address = Account.create().address
+        # Send funds to signing address
+        self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)
+        mock_data = get_mocked_signup_data()
+        self.assertEqual(User.objects.count(), 0)
+        url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
+        response = self.client.post(url, data=mock_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(User.objects.count(), 0)

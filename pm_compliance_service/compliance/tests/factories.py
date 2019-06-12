@@ -9,7 +9,6 @@ from faker.providers import internet
 
 from ..models import Country, User
 from ..serializers import SourceOfWealth
-from ..constants import RECAPTCHA_RESPONSE_PARAM
 from ..utils import country_iso_codes
 
 
@@ -51,7 +50,7 @@ class UserFactory(factory.DjangoModelFactory):
 
 def get_mocked_signup_data(**kwargs) -> Dict:
     """
-
+    Creates a dictionary filled with data that can be used on Signup phase.
     :param kwargs: optional dictionary that overrides/adds extra data
     :return: mocked data
     """
@@ -63,22 +62,29 @@ def get_mocked_signup_data(**kwargs) -> Dict:
             'name': faker.name(),
             'lastname': faker.name(),
             'country': country_iso_code[2],
-        },
-        'extra': {
             'source_of_wealth': SourceOfWealth(faker.random.randrange(0, 10)).value,
             'source_of_wealth_metadata': 'test',
             'expected_trade_volume': faker.random.randrange(1, 100)
-        }
+        },
     }
+
+    mock_data.update({
+        'onfido': {
+            'first_name': mock_data['user']['name'],
+            'last_name': mock_data['user']['lastname'],
+            'dbo': None,
+        }
+    })
+
     # Provide extra data or override default ones
     merged_data = {
         'user': {
             **mock_data.get('user'),
             **kwargs.get('user', {})
         },
-        'extra': {
-            **mock_data.get('extra'),
-            **kwargs.get('extra', {})
+        'onfido': {
+            **mock_data.get('onfido'),
+            **kwargs.get('onfido', {})
         }
     }
 

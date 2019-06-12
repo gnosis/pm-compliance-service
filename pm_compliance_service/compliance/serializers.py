@@ -3,10 +3,10 @@ from enum import Enum
 from django.conf import settings
 from gnosis.eth.django.serializers import EthereumAddressField
 from gnosis.eth import EthereumClientProvider
-from requests import post
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from .onfido import Client, OnfidoCreationException
 from .models import Country, User
 
 
@@ -24,19 +24,18 @@ class SourceOfWealth(Enum):
     RENTAL_INCOME = 10
 
 
-class UserModelSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.Serializer):
     """
     Serializes user data into database.
     """
-    class Meta:
-        model = User
-        fields = ('country', 'email', 'ethereum_address', 'lastname', 'name',)
-
     country = serializers.CharField(max_length=3, min_length=3)
     email = serializers.EmailField()
     ethereum_address = EthereumAddressField()
     lastname = serializers.CharField()
     name = serializers.CharField()
+    source_of_wealth = serializers.ChoiceField([(tag.value, tag.name) for tag in SourceOfWealth])
+    source_of_wealth_metadata = serializers.CharField(max_length=255)
+    expected_trade_volume = serializers.IntegerField()
 
     def validate_country(self, value):
         try:
@@ -69,41 +68,32 @@ class UserModelSerializer(serializers.ModelSerializer):
             raise ValidationError
         return value
 
+    def create(self, validated_data):
+        user_data = {
+            'name': validated_data['name'],
+            'lastname': validated_data['lastname'],
+            'country': validated_data['country'],
+            'ethereum_address': validated_data['ethereum_address'],
+            'email': validated_data['email']
+        }
+        return User.objects.create(**user_data)
 
-class ThirdPartyDataSerializer(serializers.Serializer):
+
+class OnfidoSerializer(serializers.Serializer):
     """
     Serializes data that will be sent to 3rd-party services.
     """
-    source_of_wealth = serializers.ChoiceField([(tag.value, tag.name) for tag in SourceOfWealth])
-    source_of_wealth_metadata = serializers.CharField(max_length=255)
-    expected_trade_volume = serializers.IntegerField()
-    recaptcha = serializers.CharField(allow_null=True)  # skip default Validation, use function defined validation
-
-    def validate_recaptcha(self, value):
-        if settings.ENABLE_RECAPTCHA_VALIDATION:
-            data = {
-                'secret': settings.RECAPTCHA_SECRET_KEY,
-                'response': value
-            }
-
-            # Execute captcha validation
-            request = post(settings.RECAPTCHA_VALIDATION_URL, data=data)
-
-            if request.json().get('status') == 'Success':
-                return value
-            else:
-                raise ValidationError('Invalid Captcha')
-        else:
-            return value
-
-
-class UserCreationSerializer(serializers.Serializer):
-    """
-    Main User creation serializer
-    """
-    user = UserModelSerializer()
-    extra = ThirdPartyDataSerializer()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    dob = serializers.DateField(allow_null=True)
 
     def create(self, validated_data):
-        user_data = validated_data.pop('user')
-        return User.objects.create(**user_data)
+        # Instantiate onfido client
+        onfido_client = Client(settings.ONFIDO_BASE_URL, settings.ONFIDO_API_TOKEN)
+
+        try:
+            applicant = onfido_client.create_applicant(validated_data)
+        except OnfidoCreationException as exc:
+            raise ValidationError from exc
+
+        return applicant

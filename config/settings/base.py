@@ -281,3 +281,8 @@ MIN_SIGNUP_ETH_BALANCE = env('MIN_SIGNUP_ETH_BALANCE', default=1000000000000000)
 RECAPTCHA_SECRET_KEY = env.str('RECAPTCHA_SECRET_KEY', default=None)
 RECAPTCHA_VALIDATION_URL = env.str('RECAPTCHA_VALIDATION_URL', default='https://www.google.com/recaptcha/api/siteverify')
 ENABLE_RECAPTCHA_VALIDATION = env.bool('ENABLE_RECAPTCHA_VALIDATION', default=True)
+
+# Onfido
+# ------------------------------------------------------------------------------
+ONFIDO_BASE_URL = env.str('ONFIDO_BASE_URL', default='https://api.onfido.com')
+ONFIDO_API_TOKEN = env.str('ONFIDO_API_TOKEN', default=None)

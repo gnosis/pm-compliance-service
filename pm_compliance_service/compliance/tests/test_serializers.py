@@ -1,14 +1,11 @@
 from django.conf import settings
-from django.urls import reverse
+from django.test import TestCase
 from eth_account import Account
 from gnosis.eth.tests.ethereum_test_case import EthereumTestCaseMixin
-from rest_framework import status
-from rest_framework.exceptions import ErrorDetail
-from django.test import TestCase
 
 from .factories import get_mocked_signup_data
-from ..models import User, Status
-from ..serializers import UserModelSerializer
+from ..models import User
+from ..serializers import UserSerializer
 
 
 class TestSerializers(TestCase, EthereumTestCaseMixin):
@@ -30,13 +27,9 @@ class TestSerializers(TestCase, EthereumTestCaseMixin):
 
         self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)  # put money on eth address
 
-        serializer = UserModelSerializer(data=mock_data['user'])
+        serializer = UserSerializer(data=mock_data['user'])
         self.assertTrue(serializer.is_valid(), serializer.errors)
         instance = serializer.save()
         self.assertIsNotNone(instance)
 
-        # serialize django model
-        user = User.objects.first()
-        serialized_data = UserModelSerializer(user)
-        self.assertEqual(serialized_data.data['email'], mock_data['user']['email'])
 

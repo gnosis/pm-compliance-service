@@ -51,3 +51,7 @@ ETHEREUM_TEST_PRIVATE_KEY = env.str('ETHEREUM_TEST_PRIVATE_KEY', default=None)
 # Google
 # ------------------------------------------------------------------------------
 ENABLE_RECAPTCHA_VALIDATION = env.bool('ENABLE_RECAPTCHA_VALIDATION')
+
+# Onfido
+# ------------------------------------------------------------------------------
+ONFIDO_API_TOKEN = env.str('ONFIDO_API_TOKEN', default=None)
