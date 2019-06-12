@@ -91,3 +91,16 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
         response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 0)
+
+    @override_settings(
+        ENABLE_RECAPTCHA_VALIDATION=True
+    )
+    def test_user_creation_invalid_recaptcha(self):
+        ethereum_address = Account.create().address
+        # Send funds to signing address
+        self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)
+        mock_data = get_mocked_signup_data()
+        url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
+        response = self.client.post(url, data=mock_data['user'], format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIsInstance(response.data['recaptcha'], ErrorDetail)
