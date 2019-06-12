@@ -75,11 +75,13 @@ class UserCreationView(CreateAPIView):
         Transform input data into a structure compatible with UserCreationSerializer
         :return transformed data dictionary
         """
+        logger.debug('Transform data for address={} data={}'.format(ethereum_address, data))
+
         transformed_data = {
             'user': {
                 **data,
                 'ethereum_address': ethereum_address,
-                'recaptcha': data.get('extra', {}).get(RECAPTCHA_RESPONSE_PARAM, None)
+                'recaptcha': data.get(RECAPTCHA_RESPONSE_PARAM, None)
             }
         }
 
@@ -91,6 +93,7 @@ class UserCreationView(CreateAPIView):
                 'dob': transformed_data['user'].get('birthdate', None)
             }
         })
+
         return transformed_data
 
     def _is_recaptcha_valid(self, recaptcha: str) -> bool:
@@ -106,7 +109,9 @@ class UserCreationView(CreateAPIView):
 
         # Execute captcha validation
         request = requests.post(settings.RECAPTCHA_VALIDATION_URL, data=data)
-        return request.json().get('status') == 'Success'
+        if request.status_code == status.HTTP_200_OK and request.json().get('status') == 'Success':
+            return True
+        return False
 
     @swagger_auto_schema(responses={201: UserSerializer(),
                                     400: 'Invalid data'})
@@ -121,7 +126,7 @@ class UserCreationView(CreateAPIView):
         if settings.ENABLE_RECAPTCHA_VALIDATION:
             logger.debug('Verify RECAPTCHA code')
             if not self._is_recaptcha_valid(transformed_data.get('user')['recaptcha']):
-                raise ValidationError('Invalid recaptcha code')
+                raise ValidationError({'recaptcha': 'Invalid recaptcha code'})
 
         user_serializer = self.serializer_class(data=transformed_data.get('user'))
         if user_serializer.is_valid():
@@ -133,8 +138,11 @@ class UserCreationView(CreateAPIView):
                 # Instantiate onfido serializer
                 onfido_serializer = OnfidoSerializer(data=transformed_data.get('onfido'))
                 onfido_serializer.is_valid(raise_exception=True)
+
                 logger.debug('Create onfido applicant: {}'.format(transformed_data.get('onfido')))
                 applicant = onfido_serializer.save()
+                logger.debug('Applicant created: {}'.format(applicant.data))
+
                 return Response(status=status.HTTP_201_CREATED, data=applicant.data)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data=user_serializer.errors)
