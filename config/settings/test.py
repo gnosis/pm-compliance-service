@@ -5,10 +5,14 @@ With these settings, tests run faster.
 from .base import *  # noqa
 from .base import env
 
+
+env.read_env(str(ROOT_DIR.path('.env_test')))
+
+
 # GENERAL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = False
+DEBUG = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="q8lVkJGsIiHcTSQKaWIBsMVPOGnCnF6f7NDGup8KdDNmviSaZVhP0Nq3q3MolmFU")
 # https://docs.djangoproject.com/en/dev/ref/settings/#test-runner
@@ -39,3 +43,15 @@ EMAIL_PORT = 1025
 
 # CELERY
 CELERY_ALWAYS_EAGER = True
+
+# Ethereum
+# ------------------------------------------------------------------------------
+ETHEREUM_TEST_PRIVATE_KEY = env.str('ETHEREUM_TEST_PRIVATE_KEY', default=None)
+
+# Google
+# ------------------------------------------------------------------------------
+ENABLE_RECAPTCHA_VALIDATION = env.bool('ENABLE_RECAPTCHA_VALIDATION')
+
+# Onfido
+# ------------------------------------------------------------------------------
+ONFIDO_API_TOKEN = env.str('ONFIDO_API_TOKEN', default=None)

@@ -1,20 +1,23 @@
 import logging
+from typing import Dict
 
+import requests
+from django.db import transaction
 from django.conf import settings
-from django.db.models import Q
-
-from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
-from eth_account.account import Account
-from rest_framework import filters, status
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.generics import CreateAPIView, ListAPIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
+from rest_framework.generics import CreateAPIView
+from rest_framework.permissions import AllowAny
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView, exception_handler
+from web3 import Web3
 
 from pm_compliance_service.version import __version__
+from .constants import RECAPTCHA_RESPONSE_PARAM
+from .serializers import OnfidoSerializer, UserSerializer
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,9 @@ def custom_exception_handler(exc, context):
 
 
 class AboutView(APIView):
+    """
+    Returns relevant information about the project itself.
+    """
     renderer_classes = (JSONRenderer,)
 
     def get(self, request, format=None):
@@ -55,3 +61,80 @@ class AboutView(APIView):
             'settings': {}
         }
         return Response(content)
+
+
+class UserCreationView(CreateAPIView):
+    """
+    Handles POST requests to /users/<str:ethereum_address>
+    """
+    permission_classes = (AllowAny,)
+    serializer_class = UserSerializer
+
+    def _transform_data(self, ethereum_address: str, data: Dict) -> Dict:
+        """
+        Transform input data into a structure compatible with UserCreationSerializer
+        :return transformed data dictionary
+        """
+        transformed_data = {
+            'user': {
+                **data,
+                'ethereum_address': ethereum_address,
+                'recaptcha': data.get('extra', {}).get(RECAPTCHA_RESPONSE_PARAM, None)
+            }
+        }
+
+        transformed_data.update({
+            'onfido': {
+                'first_name': transformed_data['user'].get('name', None),
+                'last_name': transformed_data['user'].get('lastname', None),
+                'email': transformed_data['user'].get('email', None),
+                'dob': transformed_data['user'].get('birthdate', None)
+            }
+        })
+        return transformed_data
+
+    def _is_recaptcha_valid(self, recaptcha: str) -> bool:
+        """
+        Executes recaptcha validation.
+        :param recaptcha
+        :return: True if recaptcha_value is valid, False otherwise
+        """
+        data = {
+            'secret': settings.RECAPTCHA_SECRET_KEY,
+            'response': recaptcha
+        }
+
+        # Execute captcha validation
+        request = requests.post(settings.RECAPTCHA_VALIDATION_URL, data=data)
+        return request.json().get('status') == 'Success'
+
+    @swagger_auto_schema(responses={201: UserSerializer(),
+                                    400: 'Invalid data'})
+    def post(self, request, ethereum_address, *args, **kwargs):
+        if not Web3.isChecksumAddress(ethereum_address):
+            return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        # Transform data
+        transformed_data = self._transform_data(ethereum_address, request.data)
+
+        # Validate recaptcha
+        if settings.ENABLE_RECAPTCHA_VALIDATION:
+            logger.debug('Verify RECAPTCHA code')
+            if not self._is_recaptcha_valid(transformed_data.get('user')['recaptcha']):
+                raise ValidationError('Invalid recaptcha code')
+
+        user_serializer = self.serializer_class(data=transformed_data.get('user'))
+        if user_serializer.is_valid():
+            # Wrap execution into a transaction
+            with transaction.atomic():
+                logger.debug('Create user: {}'.format(transformed_data.get('user')))
+                user_serializer.save()
+
+                # Instantiate onfido serializer
+                onfido_serializer = OnfidoSerializer(data=transformed_data.get('onfido'))
+                onfido_serializer.is_valid(raise_exception=True)
+                logger.debug('Create onfido applicant: {}'.format(transformed_data.get('onfido')))
+                applicant = onfido_serializer.save()
+                return Response(status=status.HTTP_201_CREATED, data=applicant.data)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=user_serializer.errors)

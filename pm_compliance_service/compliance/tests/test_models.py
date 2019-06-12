@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from ..models import Country, User
+from ..models import User
 from .factories import UserFactory
 
 
