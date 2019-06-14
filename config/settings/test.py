@@ -58,3 +58,4 @@ ENABLE_RECAPTCHA_VALIDATION = env.bool('ENABLE_RECAPTCHA_VALIDATION')
 # Onfido
 # ------------------------------------------------------------------------------
 ONFIDO_API_TOKEN = env.str('ONFIDO_API_TOKEN')
+ONFIDO_TEST_CLIENT = True

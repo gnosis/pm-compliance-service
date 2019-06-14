@@ -5,8 +5,9 @@ from gnosis.eth.django.serializers import EthereumAddressField
 from gnosis.eth import EthereumClientProvider
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from web3 import Web3
 
-from .onfido import Client, OnfidoCreationException
+from .onfido import get_client, OnfidoCreationException
 from .models import Country, User
 
 
@@ -57,9 +58,10 @@ class UserSerializer(serializers.Serializer):
 
         # Validate that provided ethereum address has enough balance
         eth_balance = eth_client.get_balance(value)
-        if eth_balance < settings.MIN_SIGNUP_ETH_BALANCE:
-            raise ValidationError('Minimum Ethereum balance is {}, current account balance {}'.format(
-                settings.MIN_SIGNUP_ETH_BALANCE, eth_balance))
+        if eth_balance < settings.MIN_SIGNUP_WEI_BALANCE:
+            raise ValidationError('Minimum Ethereum balance is {} ETH, current account balance {} ETH'.format(
+                Web3.fromWei(settings.MIN_SIGNUP_WEI_BALANCE, 'ether'),
+                Web3.fromWei(eth_balance, 'ether')))
         return value
 
     def validate_email(self, value):
@@ -88,8 +90,8 @@ class OnfidoSerializer(serializers.Serializer):
     dob = serializers.DateField(allow_null=True)
 
     def create(self, validated_data):
-        # Instantiate onfido client
-        onfido_client = Client(settings.ONFIDO_BASE_URL, settings.ONFIDO_API_TOKEN)
+        # Get an instance of Onfido Client
+        onfido_client = get_client(settings.ONFIDO_BASE_URL, settings.ONFIDO_API_TOKEN)
 
         try:
             applicant = onfido_client.create_applicant(validated_data)

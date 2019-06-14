@@ -24,7 +24,7 @@ class TestSerializers(TestCase, EthereumTestCaseMixin):
         custom_data = {'user':{'ethereum_address': ethereum_address}}
         mock_data = get_mocked_signup_data(**custom_data)  # override default data
 
-        self.send_ether(ethereum_address, settings.MIN_SIGNUP_ETH_BALANCE)  # put money on eth address
+        self.send_ether(ethereum_address, settings.MIN_SIGNUP_WEI_BALANCE)  # put money on eth address
 
         serializer = UserSerializer(data=mock_data['user'])
         self.assertTrue(serializer.is_valid(), serializer.errors)
