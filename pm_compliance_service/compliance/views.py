@@ -109,9 +109,7 @@ class UserCreationView(CreateAPIView):
 
         # Execute captcha validation
         request = requests.post(settings.RECAPTCHA_VALIDATION_URL, data=data)
-        if request.status_code == status.HTTP_200_OK and request.json().get('status') == 'Success':
-            return True
-        return False
+        return request.json().get('success') is True
 
     @swagger_auto_schema(responses={201: UserSerializer(),
                                     400: 'Invalid data'})
