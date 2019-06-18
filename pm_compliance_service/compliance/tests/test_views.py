@@ -106,4 +106,4 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
         url = reverse('v1:user-creation', kwargs={'ethereum_address': ethereum_address})
         response = self.client.post(url, data=mock_data['user'], format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIsInstance(response.data['recaptcha'], ErrorDetail)
+        self.assertIsInstance(response.data['recaptcha'][0], ErrorDetail)

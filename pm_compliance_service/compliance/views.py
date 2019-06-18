@@ -95,6 +95,8 @@ class UserCreationView(CreateAPIView):
             }
         })
 
+        logger.debug('Transformed data={}'.format(transformed_data))
+
         return transformed_data
 
     def _is_recaptcha_valid(self, recaptcha: str) -> bool:
@@ -125,21 +127,25 @@ class UserCreationView(CreateAPIView):
         if settings.ENABLE_RECAPTCHA_VALIDATION:
             logger.debug('Verify RECAPTCHA code')
             if not self._is_recaptcha_valid(transformed_data.get('user')['recaptcha']):
-                raise ValidationError({'recaptcha': 'Invalid recaptcha code'})
+                # Raise a django compliant validation error
+                raise ValidationError({'recaptcha': ['Invalid recaptcha code']})
 
         user_serializer = self.serializer_class(data=transformed_data.get('user'))
         if user_serializer.is_valid():
             # Wrap execution into a transaction
             with transaction.atomic():
                 logger.debug('Create user: {}'.format(transformed_data.get('user')))
+                # Save user on database
                 user_serializer.save()
 
+                logger.debug('Create onfido entry: {}'.format(transformed_data.get('onfido')))
                 # Instantiate onfido serializer
                 onfido_serializer = OnfidoSerializer(data=transformed_data.get('onfido'))
                 onfido_serializer.is_valid(raise_exception=True)
 
                 logger.debug('Create onfido applicant: {}'.format(transformed_data.get('onfido')))
                 applicant = onfido_serializer.save()
+
                 logger.debug('Applicant created {}'.format(applicant.data))
 
                 # Create response data starting from Applicant instance data
