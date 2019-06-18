@@ -90,7 +90,8 @@ class UserCreationView(CreateAPIView):
                 'first_name': transformed_data['user'].get('name', None),
                 'last_name': transformed_data['user'].get('lastname', None),
                 'email': transformed_data['user'].get('email', None),
-                'dob': transformed_data['user'].get('birthdate', None)
+                'dob': transformed_data['user'].get('birthdate', None),
+                'country': transformed_data['user'].get('country', None)
             }
         })
 
