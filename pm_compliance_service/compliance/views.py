@@ -140,8 +140,13 @@ class UserCreationView(CreateAPIView):
 
                 logger.debug('Create onfido applicant: {}'.format(transformed_data.get('onfido')))
                 applicant = onfido_serializer.save()
-                logger.debug('Applicant created: {}'.format(applicant.data))
+                logger.debug('Applicant created {}'.format(applicant.data))
 
-                return Response(status=status.HTTP_201_CREATED, data=applicant.data)
+                # Create response data starting from Applicant instance data
+                response_data = {
+                    **applicant.data,
+                    'sdk_token': applicant.sdk_token
+                }
+                return Response(status=status.HTTP_201_CREATED, data=response_data)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data=user_serializer.errors)

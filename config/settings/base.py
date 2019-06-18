@@ -303,3 +303,4 @@ ENABLE_RECAPTCHA_VALIDATION = env.bool('ENABLE_RECAPTCHA_VALIDATION', default=Tr
 # ------------------------------------------------------------------------------
 ONFIDO_BASE_URL = env.str('ONFIDO_BASE_URL', default='https://api.onfido.com')
 ONFIDO_API_TOKEN = env.str('ONFIDO_API_TOKEN')
+ONFIDO_API_REFERRER = env.str('ONFIDO_API_REFERRER')
