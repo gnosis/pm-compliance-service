@@ -216,6 +216,12 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'pm_compliance_service.compliance.views.custom_exception_handler',
 }
 
+
+# Swagger
+# ------------------------------------------------------------------------------
+LOGIN_URL = '/admin'
+
+
 # LOGGING
 # ------------------------------------------------------------------------------
 # See: https://docs.djangoproject.com/en/dev/ref/settings/#logging
