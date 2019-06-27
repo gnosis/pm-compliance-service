@@ -1,4 +1,4 @@
-import random
+import logging, random
 from datetime import datetime
 from typing import Dict
 from urllib.parse import urljoin
@@ -8,10 +8,18 @@ from requests import post, models
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
 
 from .constants import ONFIDO_APPLICANT_ENDPOINT, ONFIDO_SDK_TOKEN_ENDPOINT
+from .exceptions import GenericAPIException
 
 
-class OnfidoCreationException(Exception):
-    pass
+logger = logging.getLogger(__name__)
+
+
+class OnfidoCreationException(GenericAPIException):
+    def __init__(self, detail, code=None, status_code=None):
+        if isinstance(detail, dict) and 'error' in detail and detail['error']['type'] == 'validation_error':
+            detail = {'non_fields_error': ['Onfido rejected the request due to invalid incoming data or SDK settings']}
+
+        super().__init__(detail, code=code, status_code=status_code)
 
 
 class Applicant:
@@ -70,7 +78,8 @@ class Client:
         if request.status_code == HTTP_201_CREATED:
             return Applicant(request)
         else:
-            raise OnfidoCreationException(request.status_code)
+            logger.warning(request.json())
+            raise OnfidoCreationException(detail=request.json())
 
     def get_sdk_token(self, data: dict) -> str:
         """
@@ -84,7 +93,8 @@ class Client:
         if request.status_code == HTTP_200_OK:
             return request.json().get('token')
         else:
-            raise OnfidoCreationException(request.status_code)
+            logger.warning(request.json())
+            raise OnfidoCreationException(detail=request.json())
 
 
 class DummyClient(Client):

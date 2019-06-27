@@ -97,21 +97,17 @@ class OnfidoSerializer(serializers.Serializer):
         # Get an instance of Onfido Client
         onfido_client = get_client(settings.ONFIDO_BASE_URL, settings.ONFIDO_API_TOKEN)
 
-        try:
-            logger.debug('Create applicant with data={}'.format(validated_data))
-            applicant = onfido_client.create_applicant(validated_data)
+        logger.debug('Create applicant with data={}'.format(validated_data))
+        applicant = onfido_client.create_applicant(validated_data)
 
-            logger.debug('Get SDK Token')
-            # Get onfido sdk token
-            sdk_token = onfido_client.get_sdk_token({
-                'applicant_id': applicant.data.get('id'),
-                'referrer': settings.ONFIDO_API_REFERRER
-            })
+        logger.debug('Get SDK Token')
+        # Get onfido sdk token
+        sdk_token = onfido_client.get_sdk_token({
+            'applicant_id': applicant.data.get('id'),
+            'referrer': settings.ONFIDO_API_REFERRER
+        })
 
-            # Set sdk_token in Applicant instance
-            applicant.sdk_token = sdk_token
-
-        except OnfidoCreationException as exc:
-            raise ValidationError from exc
+        # Set sdk_token in Applicant instance
+        applicant.sdk_token = sdk_token
 
         return applicant
