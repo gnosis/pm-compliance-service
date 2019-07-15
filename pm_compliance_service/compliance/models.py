@@ -5,7 +5,7 @@ from gnosis.eth.django.models import EthereumAddressField
 from model_utils.models import TimeStampedModel
 
 
-class Status(Enum):
+class UserVerificationStatus(Enum):
     PENDING = 0
     FROZEN = 1
     FAILED = 2
@@ -28,16 +28,21 @@ class User(TimeStampedModel):
     cra = models.PositiveSmallIntegerField(default=None, null=True, blank=True)
     ethereum_address = EthereumAddressField(unique=True)
     email = models.EmailField(unique=True)
+    is_dormant = models.BooleanField(default=False)
     is_source_of_funds_verified = models.BooleanField(default=False)
     name = models.CharField(max_length=45)
     lastname = models.CharField(max_length=45)
-    status = models.PositiveSmallIntegerField(null=False,
-                                              choices=[(tag.value, tag.name) for tag in Status],
-                                              default=Status.PENDING.value)
+    verification_status = models.PositiveSmallIntegerField(null=False,
+                                              choices=[(tag.value, tag.name) for tag in UserVerificationStatus],
+                                              default=UserVerificationStatus.PENDING.value)
 
     country = models.ForeignKey(Country,
                                 on_delete=models.PROTECT,
                                 related_name='country_users')
 
+    def get_verbose_verification_status(self):
+        return UserVerificationStatus(self.verification_status).name
+
     def __str__(self):
-        return 'Email={} Address={} Status={}'.format(self.email, self.ethereum_address, self.status)
+        return 'Email={} Address={} Status={}'.format(self.email, self.ethereum_address,
+                                                      self.get_verbose_verification_status())

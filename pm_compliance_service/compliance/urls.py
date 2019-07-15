@@ -11,5 +11,5 @@ timestamp_regex = '\\d{4}[-]?\\d{1,2}[-]?\\d{1,2} \\d{1,2}:\\d{1,2}:\\d{1,2}'
 
 urlpatterns = [
     path('about/', views.AboutView.as_view(), name='about'),
-    path('users/<str:ethereum_address>/', views.UserCreationView.as_view(), name='user-creation')
+    path('users/<str:ethereum_address>/', views.UserView.as_view(), name='user')
 ]

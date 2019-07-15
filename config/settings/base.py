@@ -228,7 +228,7 @@ LOGIN_URL = '/admin'
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
 # the site admins bon every HTTP 500 error when DEBUG=False.
-# See https://docs.djangoproject.com/en/dev/topics/logging for
+# See https://docs.djangoproject.com/en/2.2/topics/logging
 # more details on how to customize your logging configuration.
 LOGGING = {
     'version': 1,

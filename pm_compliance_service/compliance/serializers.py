@@ -9,7 +9,7 @@ from rest_framework.exceptions import ValidationError
 from web3 import Web3
 
 from .onfido import get_client, OnfidoCreationException
-from .models import Country, User
+from .models import Country, User, UserVerificationStatus
 
 
 logger = logging.getLogger(__name__)
@@ -29,9 +29,9 @@ class SourceOfWealth(Enum):
     RENTAL_INCOME = 10
 
 
-class UserSerializer(serializers.Serializer):
+class UserCreationSerializer(serializers.Serializer):
     """
-    Serializes user data into database.
+    Deserializes user data into database.
     """
     country = serializers.CharField(max_length=3, min_length=3)
     email = serializers.EmailField()
@@ -83,6 +83,22 @@ class UserSerializer(serializers.Serializer):
             'email': validated_data['email']
         }
         return User.objects.create(**user_data)
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    """
+    Serialize user data from database into JSON.
+    """
+
+    class Meta:
+        model = User
+        fields = ('ethereum_address', 'is_dormant', 'is_source_of_funds_verified', 'verification_status',)
+        read_only_fields = fields
+
+    verification_status = serializers.SerializerMethodField()
+
+    def get_verification_status(self, obj):
+        return obj.get_verbose_verification_status()
 
 
 class OnfidoSerializer(serializers.Serializer):
