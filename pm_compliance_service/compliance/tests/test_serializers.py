@@ -4,7 +4,7 @@ from eth_account import Account
 from gnosis.eth.tests.ethereum_test_case import EthereumTestCaseMixin
 
 from .factories import get_mocked_signup_data
-from ..serializers import UserSerializer
+from ..serializers import UserCreationSerializer
 
 
 class TestSerializers(TestCase, EthereumTestCaseMixin):
@@ -26,7 +26,7 @@ class TestSerializers(TestCase, EthereumTestCaseMixin):
 
         self.send_ether(ethereum_address, settings.MIN_SIGNUP_WEI_BALANCE)  # put money on eth address
 
-        serializer = UserSerializer(data=mock_data['user'])
+        serializer = UserCreationSerializer(data=mock_data['user'])
         self.assertTrue(serializer.is_valid(), serializer.errors)
         instance = serializer.save()
         self.assertIsNotNone(instance)

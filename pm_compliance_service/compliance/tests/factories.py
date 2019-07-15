@@ -7,7 +7,7 @@ import factory
 from faker import Faker
 from faker.providers import internet
 
-from ..models import Country, User
+from ..models import Country, User, UserVerificationStatus
 from ..serializers import SourceOfWealth
 from ..utils import country_iso_codes
 
@@ -41,10 +41,11 @@ class UserFactory(factory.DjangoModelFactory):
     cra = faker.random.randrange(0, 10)
     ethereum_address = factory.LazyFunction(lambda: Account.create().address)
     email = faker.safe_email()
+    is_dormant = False
     is_source_of_funds_verified = False
     lastname = faker.name()  # surname() or lastname() doesn't exist
     name = faker.name()
-    status = faker.random.randrange(0, 5)
+    verification_status = faker.random.randrange(0, len(UserVerificationStatus))
     country = factory.SubFactory(CountryFactory)
 
 

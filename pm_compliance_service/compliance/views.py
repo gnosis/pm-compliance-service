@@ -4,10 +4,10 @@ from typing import Dict
 import requests
 from django.db import transaction
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
@@ -16,7 +16,8 @@ from web3 import Web3
 
 from pm_compliance_service.version import __version__
 from .constants import RECAPTCHA_RESPONSE_PARAM
-from .serializers import OnfidoSerializer, UserSerializer
+from .models import User
+from .serializers import OnfidoSerializer, UserCreationSerializer, UserDetailSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,9 @@ def custom_exception_handler(exc, context):
 
     # Now add the HTTP status code to the response.
     if not response:
-        if isinstance(exc, Exception):
+        if isinstance(exc, ObjectDoesNotExist):
+            response = Response(status=status.HTTP_404_NOT_FOUND)
+        elif isinstance(exc, Exception):
             response = Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
         else:
             response = Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -63,12 +66,12 @@ class AboutView(APIView):
         return Response(content)
 
 
-class UserCreationView(CreateAPIView):
+class UserView(APIView):
     """
-    Handles POST requests to /users/<str:ethereum_address>
+    Handles requests to /users/<str:ethereum_address>
     """
     permission_classes = (AllowAny,)
-    serializer_class = UserSerializer
+    serializer_class = UserCreationSerializer
 
     def _transform_data(self, ethereum_address: str, data: Dict) -> Dict:
         """
@@ -114,8 +117,9 @@ class UserCreationView(CreateAPIView):
         request = requests.post(settings.RECAPTCHA_VALIDATION_URL, data=data)
         return request.json().get('success') is True
 
-    @swagger_auto_schema(responses={201: UserSerializer(),
-                                    400: 'Invalid data'})
+    @swagger_auto_schema(responses={201: UserCreationSerializer(),
+                                    400: 'Invalid data',
+                                    422: 'Unprocessable Ethereum address'})
     def post(self, request, ethereum_address, *args, **kwargs):
         if not Web3.isChecksumAddress(ethereum_address):
             return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
@@ -156,3 +160,18 @@ class UserCreationView(CreateAPIView):
                 return Response(status=status.HTTP_201_CREATED, data=response_data)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST, data=user_serializer.errors)
+
+    @swagger_auto_schema(responses={200: UserDetailSerializer,
+                                    404: 'User not found',
+                                    422: 'Unprocessable Ethereum address'})
+    def get(self, request, ethereum_address, *args, **kwargs):
+        if not Web3.isChecksumAddress(ethereum_address):
+            return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        try:
+            user = User.objects.get(ethereum_address=ethereum_address)
+            # Create return data
+            data = UserDetailSerializer(user).data
+            return Response(status=status.HTTP_200_OK, data=data)
+        except User.DoesNotExist as exc:
+            raise exc
