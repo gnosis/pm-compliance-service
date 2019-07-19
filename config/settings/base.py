@@ -288,6 +288,14 @@ LOGGING = {
 
 REDIS_URL = env('REDIS_URL', default='redis://localhost:6379/0')
 
+# Celery Tasks
+# ------------------------------------------------------------------------------
+# https://docs.celeryproject.org/en/latest/userguide/configuration.html#task-soft-time-limit
+DEFAULT_TASK_SOFT_TIME_LIMIT = 120  # 120 seconds
+DEFAULT_TASK_RETRIES = 4
+DEFAULT_TASK_DELAY = 0.5 * 60  # 30 seconds
+
+
 # Ethereum
 # ------------------------------------------------------------------------------
 ETHEREUM_NODE_URL = env('ETHEREUM_NODE_URL')
@@ -304,3 +312,9 @@ ENABLE_RECAPTCHA_VALIDATION = env.bool('ENABLE_RECAPTCHA_VALIDATION', default=Tr
 ONFIDO_BASE_URL = env.str('ONFIDO_BASE_URL', default='https://api.onfido.com')
 ONFIDO_API_TOKEN = env.str('ONFIDO_API_TOKEN')
 ONFIDO_API_REFERRER = env.str('ONFIDO_API_REFERRER')
+
+# AML
+# ------------------------------------------------------------------------------
+AML_CLIENT_CLASS = env.str('AML_CLIENT_CLASS')
+AML_CLIENT_BASE_URL = env.str('AML_CLIENT_BASE_URL')
+AML_CLIENT_API_TOKEN = env.str('AML_CLIENT_API_TOKEN')

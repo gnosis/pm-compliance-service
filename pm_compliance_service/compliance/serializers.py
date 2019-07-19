@@ -8,8 +8,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from web3 import Web3
 
-from .onfido import get_client, OnfidoCreationException
-from .models import Country, User, UserVerificationStatus
+from pm_compliance_service.compliance.clients.onfido import get_client
+from .models import Country, User
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,46 @@ class SourceOfWealth(Enum):
     SALE_OF_PROPERTY = 8
     SALFE_OF_COMPANY = 9
     RENTAL_INCOME = 10
+
+
+class AmlScreeningSerializer(serializers.Serializer):
+    address = EthereumAddressField()
+    asset = serializers.CharField()
+    user_id = serializers.IntegerField()
+
+    def validate_address(self, value):
+        user_exists = User.objects.filter(ethereum_address=value).exists()
+        if not user_exists:
+            raise ValidationError('Unknown address')
+        return value
+
+
+class OnfidoSerializer(serializers.Serializer):
+    """
+    Serializes data that will be sent to 3rd-party services.
+    """
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    dob = serializers.DateField(allow_null=True)
+
+    def create(self, validated_data):
+        # Get an instance of Onfido Client
+        onfido_client = get_client(settings.ONFIDO_BASE_URL, settings.ONFIDO_API_TOKEN)
+
+        logger.debug('Create applicant with data={}'.format(validated_data))
+        applicant = onfido_client.create_applicant(validated_data)
+
+        logger.debug('Get SDK Token')
+        # Get onfido sdk token
+        sdk_token = onfido_client.get_sdk_token({
+            'applicant_id': applicant.data.get('id'),
+            'referrer': settings.ONFIDO_API_REFERRER
+        })
+
+        # Set sdk_token in Applicant instance
+        applicant.sdk_token = sdk_token
+
+        return applicant
 
 
 class UserCreationSerializer(serializers.Serializer):
@@ -99,31 +139,3 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_verification_status(self, obj):
         return obj.get_verbose_verification_status()
-
-
-class OnfidoSerializer(serializers.Serializer):
-    """
-    Serializes data that will be sent to 3rd-party services.
-    """
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
-    dob = serializers.DateField(allow_null=True)
-
-    def create(self, validated_data):
-        # Get an instance of Onfido Client
-        onfido_client = get_client(settings.ONFIDO_BASE_URL, settings.ONFIDO_API_TOKEN)
-
-        logger.debug('Create applicant with data={}'.format(validated_data))
-        applicant = onfido_client.create_applicant(validated_data)
-
-        logger.debug('Get SDK Token')
-        # Get onfido sdk token
-        sdk_token = onfido_client.get_sdk_token({
-            'applicant_id': applicant.data.get('id'),
-            'referrer': settings.ONFIDO_API_REFERRER
-        })
-
-        # Set sdk_token in Applicant instance
-        applicant.sdk_token = sdk_token
-
-        return applicant
