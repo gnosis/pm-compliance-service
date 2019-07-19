@@ -12,5 +12,5 @@ class BaseClient:
         :return: auth header dictionary
         """
         return {
-            'Authorization': f'Token token=%s' % self._token
+            'Authorization': f'Token token={self._token}'
         }
