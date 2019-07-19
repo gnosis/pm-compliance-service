@@ -5,14 +5,12 @@ python:
   - "3.7"
 env:
   global:
-  - DOCKERHUB_PROJECT=pm-compliance-service
-  - SOURCE_FOLDER=pm_compliance_service
-  - PIP_USE_MIRRORS=true
-  - DJANGO_SETTINGS_MODULE=config.settings.test
   - DATABASE_URL=psql://postgres@localhost/travisci
-  - ETHEREUM_NODE_URL=http://localhost:8545
   - DJANGO_DOT_ENV_FILE=.env_test
-  - ENABLE_RECAPTCHA_VALIDATION=false
+  - DJANGO_SETTINGS_MODULE=config.settings.test
+  - DOCKERHUB_PROJECT=pm-compliance-service
+  - PIP_USE_MIRRORS=true
+  - SOURCE_FOLDER=pm_compliance_service
 addons:
   postgresql: "9.6"
 services:

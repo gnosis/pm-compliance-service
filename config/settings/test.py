@@ -45,7 +45,8 @@ EMAIL_HOST = "localhost"
 EMAIL_PORT = 1025
 
 # CELERY
-CELERY_ALWAYS_EAGER = True
+# https://docs.celeryproject.org/en/latest/userguide/configuration.html#std:setting-task_always_eager
+CELERY_TASK_ALWAYS_EAGER = True
 
 # Ethereum
 # ------------------------------------------------------------------------------

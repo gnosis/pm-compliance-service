@@ -2,18 +2,19 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from eth_account import Account
-from gnosis.eth.tests.ethereum_test_case import EthereumTestCaseMixin
 from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.test import APITestCase
 
+from .compliance_test_case import ComplianceTestMixin
 from .factories import get_mocked_signup_data
 from ..models import User, UserVerificationStatus
 
 
-class TestViews(APITestCase, EthereumTestCaseMixin):
+class TestViews(APITestCase, ComplianceTestMixin):
 
     creation_url = 'v1:user'
+    amlprescrining_url = 'v1:aml-screening'
 
     @classmethod
     def setUpTestData(cls):
@@ -128,3 +129,11 @@ class TestViews(APITestCase, EthereumTestCaseMixin):
         url = reverse(self.creation_url, kwargs={'ethereum_address': Account.create().address})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_aml_prescrining(self):
+        user: User = self.create_user()
+
+        url = reverse(self.amlprescrining_url, kwargs={'ethereum_address': user.ethereum_address})
+        data = {'user_id': user.id, 'asset': 'ETH'}
+        response = self.client.post(url, data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

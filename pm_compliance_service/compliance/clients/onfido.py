@@ -1,14 +1,14 @@
 import logging, random
 from datetime import datetime
-from typing import Dict
 from urllib.parse import urljoin
 
 from django.conf import settings
 from requests import post, models
 from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED
 
-from .constants import ONFIDO_APPLICANT_ENDPOINT, ONFIDO_SDK_TOKEN_ENDPOINT
-from .exceptions import GenericAPIException
+from pm_compliance_service.compliance.constants import ONFIDO_APPLICANT_ENDPOINT, ONFIDO_SDK_TOKEN_ENDPOINT
+from pm_compliance_service.compliance.exceptions import GenericAPIException
+from .base import BaseClient
 
 
 logger = logging.getLogger(__name__)
@@ -51,20 +51,7 @@ class Applicant:
                                             self.data.get('id'))
 
 
-class Client:
-    def __init__(self, base_url: str, token: str):
-        self._base_url = base_url
-        self._token = token
-
-    def get_auth_header(self) -> Dict:
-        """
-        Creates the authorization header to set on each request
-        :return: auth header dictionary
-        """
-        return {
-            'Authorization': 'Token token=%s' % self._token
-        }
-
+class Client(BaseClient):
     def create_applicant(self, data: dict) -> Applicant:
         """
         Creates an applicant on Onfido

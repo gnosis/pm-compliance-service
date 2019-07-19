@@ -2,6 +2,10 @@ from rest_framework.exceptions import APIException, _get_error_details
 from rest_framework import status
 
 
+class FailedRequestException(Exception):
+    pass
+
+
 class GenericAPIException(APIException):
     def __init__(self, detail=None, code=None, status_code=None):
         if detail is None:

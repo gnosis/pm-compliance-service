@@ -17,7 +17,8 @@ from web3 import Web3
 from pm_compliance_service.version import __version__
 from .constants import RECAPTCHA_RESPONSE_PARAM
 from .models import User
-from .serializers import OnfidoSerializer, UserCreationSerializer, UserDetailSerializer
+from .serializers import AmlScreeningSerializer, OnfidoSerializer, UserCreationSerializer, UserDetailSerializer
+from .tasks import aml_prescreening_task
 
 
 logger = logging.getLogger(__name__)
@@ -175,3 +176,29 @@ class UserView(APIView):
             return Response(status=status.HTTP_200_OK, data=data)
         except User.DoesNotExist as exc:
             raise exc
+
+
+@swagger_auto_schema(responses={201: AmlScreeningSerializer,
+                                400: 'Invalid request',
+                                422: 'Unprocessable Ethereum address'})
+class AmlScreeningView(APIView):
+    """
+    Handles requests to /aml/screening/<str:ethereum_address>
+    """
+    permission_classes = (AllowAny,)  # TODO implement authentication
+    serializer_class = AmlScreeningSerializer
+
+    def post(self, request, ethereum_address, *args, **kwargs):
+        if not Web3.isChecksumAddress(ethereum_address):
+            return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        data = request.data.copy()
+        # Make address available to serializer
+        data['address'] = ethereum_address
+
+        serializer = self.serializer_class(data=data)
+        if serializer.is_valid():
+            aml_prescreening_task.delay(data['address'], data['asset'], data['user_id'])
+            return Response(status=status.HTTP_201_CREATED)
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=serializer.errors)
